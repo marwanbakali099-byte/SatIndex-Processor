@@ -19,15 +19,7 @@ class TraitementImage_ViewSet(ModelViewSet):
 class Ndvi(APIView):
     def get(self,request,id_trait):
         traitement = get_object_or_404(TraitementImage,id=id_trait)
-        # filename = f"ndvi_{id_trait}.tiff"
-        # filenamecalssfication = f"ndvi_classification_{id_trait}.tiff"
-        # filenameRGB = f"ndvi_RGB_{id_trait}.tiff"
-        # relative_path = os.path.join("sat/result/NDVI", filename)
-        # relative_path_classification = os.path.join("sat/result/Classification", filenamecalssfication)
-        # relative_path_RGB = os.path.join("sat/result/RGB", filenameRGB)
-        # full_path_out = os.path.join(settings.MEDIA_ROOT, relative_path)
-        # classification_path_out = os.path.join(settings.MEDIA_ROOT, relative_path_classification)
-        # RGB_path_out = os.path.join(settings.MEDIA_ROOT, relative_path_RGB)
+
         folder_path = "sat/result"
 
         filename_ndvi = f"ndvi_{id_trait}.tiff"
@@ -117,3 +109,27 @@ class Ndvi(APIView):
         # 4. Retourner la réponse via le Serializer
         serializer = TraitementImageSerializer(traitement)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+class ComparaisonNDVI(APIView):
+    def get(self,request,id_anciennne,id_recente):
+        traitement_img_1 = get_object_or_404(TraitementImage,id=id_anciennne)
+        traitement_img_2 = get_object_or_404(TraitementImage,id=id_recente)
+        date_traitement_1 = traitement_img_1.date_traitement
+        date_traitement_2 = traitement_img_2.date_traitement
+        
+        diff_date = float(date_traitement_2-date_traitement_1)
+        
+        file_path = 'sat/result'
+        
+        fieldname_ndvi_1 = f"ndvi_{id_anciennne}.tiff"
+        fieldname_ndvi_2 = f"ndvi_{id_recente}.tiff"
+        
+        rel_path_ndvi_1 = os.path.join(file_path,fieldname_ndvi_1)
+        rel_path_ndvi_2 = os.path.join(file_path,fieldname_ndvi_2)
+        
+        full_path_out_1 = os.path.join(settings.MEDIA_ROOT, rel_path_ndvi_1)
+        full_path_out_2 = os.path.join(settings.MEDIA_ROOT, rel_path_ndvi_2)
+
+        with rasterio.open(traitement_img_1.ndvi_img) as ancienne :
+            with rasterio.open(traitement_img_2.ndvi_img) as recente :
+                pass
