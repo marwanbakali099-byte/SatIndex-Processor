@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from .serializers import TraitementImageSerializer
-from .models import TraitementImage
+from .serializers import TraitementImageSerializer ,ComparaisonNDVISerializer
+from .models import TraitementImage, ComparaisonNDVI
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView, Response
 from django.shortcuts import get_object_or_404
@@ -117,19 +117,39 @@ class ComparaisonNDVI(APIView):
         date_traitement_1 = traitement_img_1.date_traitement
         date_traitement_2 = traitement_img_2.date_traitement
         
-        diff_date = float(date_traitement_2-date_traitement_1)
+        diff_date = float((date_traitement_2-date_traitement_1).days)
         
         file_path = 'sat/result'
         
-        fieldname_ndvi_1 = f"ndvi_{id_anciennne}.tiff"
-        fieldname_ndvi_2 = f"ndvi_{id_recente}.tiff"
+        fieldname_diff_ndvi = f"ndvi_{id_anciennne}&{id_recente}.tiff"
         
-        rel_path_ndvi_1 = os.path.join(file_path,fieldname_ndvi_1)
-        rel_path_ndvi_2 = os.path.join(file_path,fieldname_ndvi_2)
+        rel_path_diff_ndvi = os.path.join(file_path,fieldname_diff_ndvi)
         
-        full_path_out_1 = os.path.join(settings.MEDIA_ROOT, rel_path_ndvi_1)
-        full_path_out_2 = os.path.join(settings.MEDIA_ROOT, rel_path_ndvi_2)
+        full_path_out_diff = os.path.join(settings.MEDIA_ROOT, rel_path_diff_ndvi)
 
-        with rasterio.open(traitement_img_1.ndvi_img) as ancienne :
-            with rasterio.open(traitement_img_2.ndvi_img) as recente :
-                pass
+        with rasterio.open(traitement_img_1.ndvi_img.path) as ancienne :
+            with rasterio.open(traitement_img_2.ndvi_img.path) as recente :
+                ancienne_ndvi = ancienne.read(1)
+                recente_ndvi = recente.read(1)
+                diff_ndvi = recente_ndvi - ancienne_ndvi
+                diff_ndvi = np.nan_to_num(diff_ndvi) 
+                meta = recente.meta
+                meta.update(dtype=float, count=1, driver='GTiff')
+                with rasterio.open(full_path_out_diff,'w',**meta) as diff:
+                    diff.write(diff_ndvi,1)
+                diff_surf = {
+                    'surface_vegetation':traitement_img_2.surfaces_clas['surface_vegetation']-traitement_img_1.surfaces_clas['surface_vegetation'],
+                    'surface_urbain_sol_nu':traitement_img_2.surfaces_clas['surface_urbain_sol_nu']-traitement_img_1.surfaces_clas['surface_urbain_sol_nu'],
+                    'surface_Light_vegetation':traitement_img_2.surfaces_clas['surface_Light_vegetation']-traitement_img_1.surfaces_clas['surface_Light_vegetation'],
+                    'surface_eau':traitement_img_2.surfaces_clas['surface_eau']-traitement_img_1.surfaces_clas['surface_eau']
+                }
+                comparaison = ComparaisonNDVI.objects.create(
+                    id_img_ancienne = traitement_img_1,
+                    id_img_recente = traitement_img_2,
+                    diff_date = diff_date,
+                    diff_img = rel_path_diff_ndvi,
+                    diff_surface_class = diff_surf
+                )
+
+                
+
