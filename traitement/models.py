@@ -12,3 +12,7 @@ class TraitementImage(models.Model):
     standard_deviation = models.FloatField(null=True)
     true_color_img = models.ImageField(upload_to="sat/result/ture/",null=True)
     ndvi_img = models.ImageField(upload_to="sat/result/NDVI/",null=True)
+    # pour image classifie par NDVI
+    class_ndvi = models.ImageField(upload_to="sat/result/ture/",null=True)
+    # pour stocker les surfaces de chaque classification de NDVI
+    surfaces_clas = models.JSONField(null=True)

@@ -5,5 +5,6 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register(r'traitement',TraitementImage_ViewSet,basename='traitImg')
 urlpatterns = [
-    path('',include(router.urls))
+    path('',include(router.urls)),
+    path('ndvi/<int:id_trait>/',Ndvi.as_view(),name="ndvi")   
 ]
