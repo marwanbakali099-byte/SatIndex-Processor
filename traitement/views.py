@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import render
 from .serializers import TraitementImageSerializer ,ComparaisonNDVISerializer
 from .models import TraitementImage, ComparaisonNDVI
@@ -9,6 +10,11 @@ import rasterio
 import numpy as np
 import os
 from django.conf import settings
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from io import BytesIO
 
 # les methode crude de modèle Traitement Image
 class TraitementImage_ViewSet(ModelViewSet):
@@ -157,5 +163,76 @@ class ComparaisonNDVI_View(APIView):
                 )
                 return Response({"status": "success","message": "La comparaison a été générée avec succès","data": {"id": comparaison.id,"diff_date_days": diff_date,"resultats_surfaces": diff_surf,"image_url": rel_path_diff_ndvi}}, status=status.HTTP_201_CREATED)
 
-                
+class GenerateRapport(APIView):
+    def get(self,request,id_ancienne,id_recente):
+        comparaison = get_object_or_404(ComparaisonNDVI,id_img_ancienne=id_ancienne,id_img_recente=id_recente)
+        # 2. Préparation du buffer PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # --- TITRE DU RAPPORT ---
+        title = f"Rapport d'Analyse de Changement NDVI"
+        elements.append(Paragraph(title, styles['Title']))
+        elements.append(Spacer(1, 12))
+        
+        # --- INFORMATIONS GÉNÉRALES ---
+        info_text = f"""
+        <b>ID Comparaison :</b> {comparaison.id}<br/>
+        <b>Période entre les captures :</b> {comparaison.diff_date} jours<br/>
+        <b>Date de génération :</b> {comparaison.date_comparaison.strftime('%d/%m/%Y %H:%M')}
+        """
+        elements.append(Paragraph(info_text, styles['Normal']))
+        elements.append(Spacer(1, 20))
 
+        # --- INSERTION DE L'IMAGE DE DIFFÉRENCE ---
+        elements.append(Paragraph("<b>Carte de Différence NDVI :</b>", styles['Heading2']))
+        if comparaison.diff_img:
+            img_path = comparaison.diff_img.path
+            # Ajuster la taille pour le PDF (A4)
+            img = Image(img_path, width=400, height=300)
+            elements.append(img)
+        elements.append(Spacer(1, 20))
+
+        # --- TABLEAU DES SURFACES ---
+        elements.append(Paragraph("<b>Statistiques de Variation des Surfaces (km²) :</b>", styles['Heading2']))
+        
+        data = [["Classe de Sol", "Variation de Surface"]]
+        for key, value in comparaison.diff_surface_class.items():
+            # Formater le nom de la clé (ex: diff_vegetation -> Végétation)
+            label = key.replace('surface_', '').replace('_', ' ').capitalize()
+            data.append([label, f"{value:+.4f} km²"])
+
+        # Style du tableau
+        table = Table(data, colWidths=[200, 150])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elements.append(table)
+        
+        # --- CONCLUSION AUTOMATIQUE ---
+        elements.append(Spacer(1, 20))
+        veg_diff = comparaison.diff_surface_class.get('surface_vegetation', 0)
+        conclusion = "<b>Interprétation :</b> "
+        if veg_diff > 0:
+            conclusion += f"Une augmentation de {abs(veg_diff):.2f} km² de la végétation a été détectée."
+        else:
+            conclusion += f"Une perte de {abs(veg_diff):.2f} km² de la végétation a été observée."
+        
+        elements.append(Paragraph(conclusion, styles['Normal']))
+
+        # 3. Génération finale
+        doc.build(elements)
+        
+        # 4. Retourner le PDF
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="rapport_ndvi_{id_ancienne}_{id_recente}.pdf"'
+        return response
