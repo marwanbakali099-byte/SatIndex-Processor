@@ -32,10 +32,10 @@
 
 ### 1. Cloner le projet
 bash
-  git clone [https://github.com/votre-username/SatIndex-Processor.git](https://github.com/votre-username/SatIndex-Processor.git)
+  git clone [https://github.com/votre-username/SatIndex-Processor.git](https://github.com/marwanbakali099-byte/SatIndex-Processor.git)
   cd SatIndex-Processor
 2. Environnement virtuel
-  git clone [https://github.com/votre-username/SatIndex-Processor.git](https://github.com/votre-username/SatIndex-Processor.git)
+  git clone [https://github.com/votre-username/SatIndex-Processor.git](https://github.com/marwanbakali099-byte/SatIndex-Processor.git)
   cd SatIndex-Processorpython -m venv env
 # Sur Windows :
   source env/bin/activate
