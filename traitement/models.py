@@ -19,8 +19,8 @@ class TraitementImage(models.Model):
 
 # un models qui stocker la résultat de comparaison de deux image sat
 class ComparaisonNDVI(models.Model):
-    id_img_ancienne = models.ForeignKey(TraitementImage,on_delete=models.CASCADE)
-    id_img_recente = models.ForeignKey(TraitementImage,on_delete=models.CASCADE)
+    id_img_ancienne = models.ForeignKey(TraitementImage,on_delete=models.CASCADE,related_name="comparaisons_anciennes")
+    id_img_recente = models.ForeignKey(TraitementImage,on_delete=models.CASCADE,related_name="comparaisons_recente")
     date_comparaison = models.DateTimeField(auto_now_add=True)
     diff_date = models.FloatField(null=True)
     diff_img = models.ImageField(upload_to="sat/res/cmp/",null=True)

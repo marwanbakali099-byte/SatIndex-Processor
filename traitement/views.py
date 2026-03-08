@@ -15,6 +15,11 @@ class TraitementImage_ViewSet(ModelViewSet):
     queryset = TraitementImage.objects.all()
     serializer_class = TraitementImageSerializer
 
+# les methode crude de modèle Comparaison
+class ComparaisonNDVI_ViewSet(ModelViewSet):
+    queryset = ComparaisonNDVI.objects.all()
+    serializer_class = ComparaisonNDVISerializer
+
 # Calcule NDVI
 class Ndvi(APIView):
     def get(self,request,id_trait):
@@ -110,7 +115,7 @@ class Ndvi(APIView):
         serializer = TraitementImageSerializer(traitement)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
-class ComparaisonNDVI(APIView):
+class ComparaisonNDVI_View(APIView):
     def get(self,request,id_anciennne,id_recente):
         traitement_img_1 = get_object_or_404(TraitementImage,id=id_anciennne)
         traitement_img_2 = get_object_or_404(TraitementImage,id=id_recente)
@@ -134,7 +139,7 @@ class ComparaisonNDVI(APIView):
                 diff_ndvi = recente_ndvi - ancienne_ndvi
                 diff_ndvi = np.nan_to_num(diff_ndvi) 
                 meta = recente.meta
-                meta.update(dtype=float, count=1, driver='GTiff')
+                meta.update(dtype='float32', count=1, driver='GTiff')
                 with rasterio.open(full_path_out_diff,'w',**meta) as diff:
                     diff.write(diff_ndvi,1)
                 diff_surf = {
@@ -150,6 +155,7 @@ class ComparaisonNDVI(APIView):
                     diff_img = rel_path_diff_ndvi,
                     diff_surface_class = diff_surf
                 )
+                return Response({"status": "success","message": "La comparaison a été générée avec succès","data": {"id": comparaison.id,"diff_date_days": diff_date,"resultats_surfaces": diff_surf,"image_url": rel_path_diff_ndvi}}, status=status.HTTP_201_CREATED)
 
                 
 
