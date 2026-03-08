@@ -26,24 +26,4 @@
 
 
 
----
-
-## ⚙️ Installation et Utilisation
-
-### 1. Cloner le projet
-bash
-  git clone [https://github.com/votre-username/SatIndex-Processor.git](https://github.com/marwanbakali099-byte/SatIndex-Processor.git)
-  cd SatIndex-Processor
-2. Environnement virtuel
-  git clone [https://github.com/votre-username/SatIndex-Processor.git](https://github.com/marwanbakali099-byte/SatIndex-Processor.git)
-  cd SatIndex-Processorpython -m venv env
-# Sur Windows :
-  source env/bin/activate
-3. Dépendances et Serveur
-  pip install -r requirements.txt
-  python manage.py migrate
-  python manage.py runserver
-
-.\env\Scripts\activate
-# Sur Linux/Mac :
 source env/bin/activate
